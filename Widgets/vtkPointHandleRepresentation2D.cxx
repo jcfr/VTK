@@ -135,6 +135,7 @@ double* vtkPointHandleRepresentation2D::GetBounds()
 void vtkPointHandleRepresentation2D::SetDisplayPosition(double p[3])
 {
   this->Superclass::SetDisplayPosition(p);
+
   this->FocalPoint->SetPoint(0, p);
   this->FocalPoint->Modified();
 
@@ -321,7 +322,9 @@ void vtkPointHandleRepresentation2D::BuildRepresentation()
        (this->Renderer && this->Renderer->GetActiveCamera() &&
         this->Renderer->GetActiveCamera()->GetMTime() > this->BuildTime) ||
        (this->Renderer && this->Renderer->GetVTKWindow() &&
-        this->Renderer->GetVTKWindow()->GetMTime() > this->BuildTime) )
+        this->Renderer->GetVTKWindow()->GetMTime() > this->BuildTime) ||
+       (this->Renderer && this->Renderer->GetMTime() > this->BuildTime)
+    )
     {
     double p[3];
     this->GetDisplayPosition(p);
