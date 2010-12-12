@@ -22,6 +22,7 @@ SET(MyTests
   TestDistanceWidget.cxx
   TestHandleWidget.cxx
 #  TestHandleWidget2D.cxx
+  TestHandleWidget2DWithMultipleRenderer.cxx
   TestImplicitPlaneWidget.cxx
   TestImplicitPlaneWidget2.cxx
   TestImplicitPlaneWidget2b.cxx
