@@ -67,7 +67,14 @@ int Test(ostream& strm)
   
   ren1->SetActiveCamera (camera);
   renWin->AddRenderer (ren1);
-  renWin->SetSize (100, 100);
+  //renWin->SetSize (100, 100);
+  renWin->SetSize (200, 200);
+
+  double xMin = 0.25;
+  double yMin = 0.25;
+  double viewportWidth = 0.5;
+  double viewportHeight = 0.5;
+  ren1->SetViewport( xMin, yMin, (xMin + viewportWidth), (yMin + viewportHeight));
   
   strm << "Origin: (" << ren1->GetOrigin()[0] << ", " << ren1->GetOrigin()[1] << ")" << endl;
   strm << "Center: (" << ren1->GetCenter()[0] << ", " << ren1->GetOrigin()[1] << ")" << endl;
@@ -165,12 +172,15 @@ int Test(ostream& strm)
   camera->Delete ();
 
   strm << "Testing completed" << endl;
+
   return 0;
 }
 
 int otherCoordinate(int,char *[])
 {
   vtksys_ios::ostringstream vtkmsg_with_warning_C4701; 
-  return Test(vtkmsg_with_warning_C4701);
+  int ret = Test(vtkmsg_with_warning_C4701);
+  std::cout << vtkmsg_with_warning_C4701.str() << std::endl;
+  return ret;
 }
 
