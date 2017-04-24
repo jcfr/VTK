@@ -79,6 +79,15 @@ public:
   virtual double *GetPhysicalTranslation(vtkCamera *);
   //@}
 
+  // converts a device pose to a world coordinate
+  // position and orientation
+  void ConvertPoseToWorldCoordinates(
+    vtkRenderer *ren,
+    vr::TrackedDevicePose_t &tdPose,
+    double pos[3],
+    double wxyz[4],
+    double ppos[3] );
+
   virtual void DoOneEvent(vtkOpenVRRenderWindow *renWin, vtkRenderer *ren);
 
 protected:
@@ -117,15 +126,6 @@ protected:
 
 
   vtkNew<vtkTransform> PoseTransform;
-
-  // converts a device pose to a world coordinate
-  // position and orientation
-  void ConvertPoseToWorldCoordinates(
-    vtkRenderer *ren,
-    vr::TrackedDevicePose_t &tdPose,
-    double pos[3],
-    double wxyz[4],
-    double ppos[3]);
 
 private:
   vtkOpenVRRenderWindowInteractor(const vtkOpenVRRenderWindowInteractor&) VTK_DELETE_FUNCTION;
