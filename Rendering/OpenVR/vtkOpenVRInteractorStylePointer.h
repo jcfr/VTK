@@ -37,37 +37,48 @@ class VTKRENDERINGOPENVR_EXPORT vtkOpenVRInteractorStylePointer : public vtkInte
 {
 public:
   static vtkOpenVRInteractorStylePointer *New();
-  vtkTypeMacro( vtkOpenVRInteractorStylePointer, vtkInteractorStyle3D );
-  void PrintSelf( ostream& os, vtkIndent indent ) VTK_OVERRIDE;
+  vtkTypeMacro(vtkOpenVRInteractorStylePointer, vtkInteractorStyle3D);
+  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
 protected:
   vtkOpenVRInteractorStylePointer();
   ~vtkOpenVRInteractorStylePointer() VTK_OVERRIDE;
 
   //Update ray callback
-  vtkCallbackCommand* UpdateRayCallbackCommand;
+  vtkCallbackCommand* UpdateCallbackCommand;
 
-  //Update position of the ray
-  static void UpdateRay( vtkObject* object,
+  //Update render state
+  static void Update(vtkObject* object,
     unsigned long event,
     void* clientdata,
-    void* calldata );
+    void* calldata);
 
-  // This method handles updating the prop based on changes in the devices
-  // pose. We use rotate as the state to mean adjusting-the-actor-pose
-  void Rotate() VTK_OVERRIDE;
+  //Update pointer
+  void UpdateRay(vtkRenderer* ren, uint32_t controllerIndex);
+
+  //Override base class to reset this->InteractionProp when picking buttons
+  // are released.
+  void OnLeftButtonUp();
+  void OnRightButtonUp();
+
+  //Override base class. Check the Dragable property before rotating.
+  void Rotate();
 
   float GetLength()
   {
     return this->Length;
   }
 
+  //Draw the ray or not
+  bool ShowRay;
+
 private:
-  vtkOpenVRInteractorStylePointer( const vtkOpenVRInteractorStylePointer& ) VTK_DELETE_FUNCTION;  // Not implemented.
-  void operator=( const vtkOpenVRInteractorStylePointer& )VTK_DELETE_FUNCTION;  // Not implemented.
+  vtkOpenVRInteractorStylePointer(const vtkOpenVRInteractorStylePointer&) VTK_DELETE_FUNCTION;  // Not implemented.
+  void operator=(const vtkOpenVRInteractorStylePointer&)VTK_DELETE_FUNCTION;  // Not implemented.
 
   //Ray length
   float Length;
+
 };
 
 #endif

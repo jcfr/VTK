@@ -32,37 +32,30 @@ vtkOpenVRInteractorStylePointer::vtkOpenVRInteractorStylePointer()
 {
   this->InteractionPicker = vtkOpenVRPropPicker::New();
 
-  this->UpdateRayCallbackCommand = vtkCallbackCommand::New();
-  this->UpdateRayCallbackCommand->SetClientData( this );
-  this->UpdateRayCallbackCommand->SetCallback( vtkOpenVRInteractorStylePointer::UpdateRay );
-  this->AddObserver( vtkCommand::RenderEvent,
-    this->UpdateRayCallbackCommand,
-    this->Priority );
+  this->UpdateCallbackCommand = vtkCallbackCommand::New();
+  this->UpdateCallbackCommand->SetClientData(this);
+  this->UpdateCallbackCommand->SetCallback(this->Update);
+  this->AddObserver(vtkCommand::RenderEvent,
+    this->UpdateCallbackCommand,
+    this->Priority);
+
+  this->ShowRay = true;
 }
 
 //----------------------------------------------------------------------------
 vtkOpenVRInteractorStylePointer::~vtkOpenVRInteractorStylePointer()
 {
-  this->UpdateRayCallbackCommand->Delete();
+  this->UpdateCallbackCommand->Delete();
 }
 
 //----------------------------------------------------------------------------
-void vtkOpenVRInteractorStylePointer::UpdateRay( vtkObject*,
+void vtkOpenVRInteractorStylePointer::Update(vtkObject*,
   unsigned long,
   void* clientdata,
-  void* )
+  void*)
 {
   vtkOpenVRInteractorStylePointer* self =
     reinterpret_cast< vtkOpenVRInteractorStylePointer * >( clientdata );
-
-  vtkOpenVRRenderWindowInteractor* iren =
-    static_cast< vtkOpenVRRenderWindowInteractor* >( self->Interactor );
-  if( !iren )
-    {
-    vtkErrorWithObjectMacro(self,
-      "Unable to get vtkOpenVRRenderWindowInteractor");
-    return;
-    }
 
   vtkRenderer* ren = self->GetCurrentRenderer();
   if( !ren )
@@ -88,7 +81,7 @@ void vtkOpenVRInteractorStylePointer::UpdateRay( vtkObject*,
     }
 
   // Compute the active controller index
-  vr::TrackedDeviceIndex_t controllerIndex = vr::k_unTrackedDeviceIndex_Hmd;
+  vr::TrackedDeviceIndex_t RightControllerIndex = vr::k_unTrackedDeviceIndex_Hmd;
 
   for( uint32_t unTrackedDevice = vr::k_unTrackedDeviceIndex_Hmd + 1;
     unTrackedDevice < vr::k_unMaxTrackedDeviceCount; unTrackedDevice++ )
@@ -97,17 +90,53 @@ void vtkOpenVRInteractorStylePointer::UpdateRay( vtkObject*,
       vr::ETrackedDeviceClass::TrackedDeviceClass_Controller )
       {
       // Found a controller index
-      controllerIndex = unTrackedDevice;
       // Check if the controller is on
       vr::ETrackedControllerRole role =
-        pHMD->GetControllerRoleForTrackedDeviceIndex( controllerIndex );
-      if( role != vr::ETrackedControllerRole::TrackedControllerRole_Invalid )
+        pHMD->GetControllerRoleForTrackedDeviceIndex( unTrackedDevice );
+      if( role == vr::ETrackedControllerRole::TrackedControllerRole_RightHand )
         {
-        break;
+        renWin->GetTrackedDeviceModel( unTrackedDevice )->SetShowRay( self->ShowRay );
+        RightControllerIndex = unTrackedDevice;
+        }
+      else if( role == vr::ETrackedControllerRole::TrackedControllerRole_LeftHand )
+        {
+        renWin->GetTrackedDeviceModel( unTrackedDevice )->SetShowRay( false );
         }
       }
     }
+  self->UpdateRay( ren, RightControllerIndex );
+}
 
+//----------------------------------------------------------------------------
+void vtkOpenVRInteractorStylePointer::UpdateRay(vtkRenderer* ren,
+  uint32_t controllerIndex)
+{
+  if( !this->ShowRay )
+    {
+    return;
+    }
+
+  vtkOpenVRRenderWindowInteractor* iren =
+    static_cast< vtkOpenVRRenderWindowInteractor* >( this->Interactor );
+  if( !iren )
+    {
+    vtkErrorWithObjectMacro( this,
+      "Unable to get vtkOpenVRRenderWindowInteractor" );
+    return;
+    }
+
+  vtkOpenVRRenderWindow* renWin =
+    static_cast< vtkOpenVRRenderWindow* >( ren->GetRenderWindow() );
+  if( !renWin )
+    {
+    vtkErrorWithObjectMacro( this, "Unable to get vtkOpenVRRenderWindow" );
+    return;
+    }
+
+  if( controllerIndex == vr::k_unTrackedDeviceIndex_Hmd )
+    {
+    return;
+    }
   // Compute controller position and world orientation
   double p0[3]; //Ray start point
   double wxyz[4];// Controller orientation
@@ -117,36 +146,62 @@ void vtkOpenVRInteractorStylePointer::UpdateRay( vtkObject*,
 
   //Compute ray length.
   double p1[3];
-  vtkOpenVRPropPicker* picker = static_cast< vtkOpenVRPropPicker* >( self->InteractionPicker );
-  picker->PickProp( p0, wxyz, ren, ren->GetViewProps() );//
-  if( self->InteractionPicker->GetPath() )
+  vtkOpenVRPropPicker* picker =
+    static_cast< vtkOpenVRPropPicker* >( this->InteractionPicker );
+  picker->PickProp( p0, wxyz, ren, ren->GetViewProps() );
+  //If something is picked, set the length accordingly
+  if( this->InteractionPicker->GetPath() )
     {
-    self->InteractionPicker->GetPickPosition( p1 );
-    self->Length = sqrt( vtkMath::Distance2BetweenPoints( p0, p1 ) );
+    this->InteractionPicker->GetPickPosition( p1 );
+    this->Length = sqrt( vtkMath::Distance2BetweenPoints( p0, p1 ) );
     }
+  //Keep the same length if the ray moves faster than the vtkProp
+  else if( this->InteractionProp != NULL )
+    {
+    double* p = this->InteractionProp->GetPosition();
+    this->Length = sqrt( vtkMath::Distance2BetweenPoints( p0, p ) );
+    }
+  //Otherwise set the length to its max
   else
     {
-    self->Length = ren->GetActiveCamera()->GetClippingRange()[1];
+    this->Length = ren->GetActiveCamera()->GetClippingRange()[1];
     }
 
   ////Set ray length for vtkOpenVRRenderWindow::RenderModels()
   vtkOpenVRModel* controller = renWin->GetTrackedDeviceModel( controllerIndex );
   if( controller )
-  {
-    controller->SetShowRay( true );
-    controller->SetRayLength( self->Length );
-  }
+    {
+    controller->SetRayLength( this->Length );
+    }
+}
+
+
+
+//----------------------------------------------------------------------------
+void vtkOpenVRInteractorStylePointer::OnRightButtonUp()
+{
+  Superclass::OnRightButtonUp();
+  //Nothing picked, reset InteractionProp
+  this->InteractionProp = NULL;
+}
+
+//----------------------------------------------------------------------------
+void vtkOpenVRInteractorStylePointer::OnLeftButtonUp()
+{
+  Superclass::OnLeftButtonUp();
+  //Nothing picked, reset InteractionProp
+  this->InteractionProp = NULL;
 }
 
 //----------------------------------------------------------------------------
 void vtkOpenVRInteractorStylePointer::Rotate()
 {
   //WARNING: Overriding Rotate() to fix vtkInteractorStyle3D::Rotate() which
-  //         isn't checking if the actor is dragable before rotating it.
+  //         isn't checking if the prop is dragable before rotating it.
   if( this->InteractionProp == NULL || !this->InteractionProp->GetDragable() )
-  {
+    {
     return;
-  }
+    }
   this->Superclass::Rotate();
 }
 
