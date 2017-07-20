@@ -70,8 +70,8 @@ vtkOpenVRRenderWindow::vtkOpenVRRenderWindow()
   this->OpenVRRenderModels = NULL;
   this->HMD = NULL;
   this->HMDTransform = vtkTransform::New();
-//  this->ContextId = 0;
-//  this->WindowId = 0;
+  this->ContextId = 0;
+  this->WindowId = 0;
   memset(this->TrackedDeviceToRenderModel, 0, sizeof(this->TrackedDeviceToRenderModel));
   this->DashboardOverlay = vtkOpenVRDefaultOverlay::New();
 }
@@ -282,19 +282,19 @@ void vtkOpenVRRenderWindow::RenderModels()
 void vtkOpenVRRenderWindow::Clean()
 {
   /* finish OpenGL rendering */
-  if (this->OwnContext /*&& this->ContextId*/)
+  if (this->OwnContext && this->ContextId)
   {
     this->MakeCurrent();
     this->ReleaseGraphicsResources(this);
   }
 
-//  this->ContextId = NULL;.
+  this->ContextId = NULL;
 }
 
 // ----------------------------------------------------------------------------
 void vtkOpenVRRenderWindow::MakeCurrent()
 {
-//  SDL_GL_MakeCurrent(this->WindowId, this->ContextId);
+  SDL_GL_MakeCurrent(this->WindowId, this->ContextId);
 }
 
 // ----------------------------------------------------------------------------
@@ -302,15 +302,14 @@ void vtkOpenVRRenderWindow::MakeCurrent()
 // Tells if this window is the current OpenGL context for the calling thread.
 bool vtkOpenVRRenderWindow::IsCurrent()
 {
-  //return this->ContextId!=0 && this->ContextId==SDL_GL_GetCurrentContext();
-  return true;
+  return this->ContextId!=0 && this->ContextId==SDL_GL_GetCurrentContext();
 }
 
 
 // ----------------------------------------------------------------------------
 void vtkOpenVRRenderWindow::SetSize(int x, int y)
 {
-//  static int resizing = 0;
+  static int resizing = 0;
   if ((this->Size[0] != x) || (this->Size[1] != y))
   {
     this->Superclass::SetSize(x, y);
@@ -320,15 +319,15 @@ void vtkOpenVRRenderWindow::SetSize(int x, int y)
       this->Interactor->SetSize(x, y);
     }
 
-//    if (this->Mapped)
-//    {
-//      if (!resizing)
-//      {
-//        resizing = 1;
-//        SDL_SetWindowSize(this->WindowId, this->Size[0], this->Size[1]);
-//        resizing = 0;
-//      }
-//    }
+    if (this->Mapped)
+    {
+      if (!resizing)
+      {
+        resizing = 1;
+        SDL_SetWindowSize(this->WindowId, this->Size[0], this->Size[1]);
+        resizing = 0;
+      }
+    }
   }
 }
 
@@ -341,22 +340,22 @@ int *vtkOpenVRRenderWindow::GetScreenSize(void)
 
 void vtkOpenVRRenderWindow::SetPosition(int x, int y)
 {
-//  static int resizing = 0;
+  static int resizing = 0;
 
   if ((this->Position[0] != x) || (this->Position[1] != y))
   {
     this->Modified();
     this->Position[0] = x;
     this->Position[1] = y;
-//    if (this->Mapped)
-//    {
-//      if (!resizing)
-//      {
-//        resizing = 1;
-//        SDL_SetWindowPosition(this->WindowId,x,y);
-//        resizing = 0;
-//      }
-//    }
+    if (this->Mapped)
+    {
+      if (!resizing)
+      {
+        resizing = 1;
+        SDL_SetWindowPosition(this->WindowId,x,y);
+        resizing = 0;
+      }
+    }
   }
 }
 
@@ -526,7 +525,7 @@ void vtkOpenVRRenderWindow::Frame(void)
       GL_LINEAR);
     glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 
-//    SDL_GL_SwapWindow( this->WindowId );
+    SDL_GL_SwapWindow( this->WindowId );
   }
 }
 
@@ -586,11 +585,11 @@ bool vtkOpenVRRenderWindow::CreateFrameBuffer( int nWidth, int nHeight, Framebuf
 // Initialize the rendering window.
 void vtkOpenVRRenderWindow::Initialize (void)
 {
-//  if ( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_TIMER ) < 0 )
-//  {
-//    vtkErrorMacro("SDL could not initialize! SDL Error: " <<  SDL_GetError());
-//    return;
-//  }
+  if ( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_TIMER ) < 0 )
+  {
+    vtkErrorMacro("SDL could not initialize! SDL Error: " <<  SDL_GetError());
+    return;
+  }
 
   // Loading the SteamVR Runtime
   vr::EVRInitError eError = vr::VRInitError_None;
@@ -601,8 +600,7 @@ void vtkOpenVRRenderWindow::Initialize (void)
     this->HMD = NULL;
     char buf[1024];
     snprintf( buf, sizeof( buf ), "Unable to init VR runtime: %s", vr::VR_GetVRInitErrorAsEnglishDescription( eError ) );
-    vtkErrorMacro(<< "VR_Init Failed" << buf);
-//    SDL_ShowSimpleMessageBox( SDL_MESSAGEBOX_ERROR, "VR_Init Failed", buf, NULL );
+    SDL_ShowSimpleMessageBox( SDL_MESSAGEBOX_ERROR, "VR_Init Failed", buf, NULL );
     return;
   }
 
@@ -615,8 +613,7 @@ void vtkOpenVRRenderWindow::Initialize (void)
 
     char buf[1024];
     snprintf( buf, sizeof( buf ), "Unable to get render model interface: %s", vr::VR_GetVRInitErrorAsEnglishDescription( eError ) );
-//    SDL_ShowSimpleMessageBox( SDL_MESSAGEBOX_ERROR, "VR_Init Failed", buf, NULL );
-    vtkErrorMacro(<< "VR_Init Failed" << buf);
+    SDL_ShowSimpleMessageBox( SDL_MESSAGEBOX_ERROR, "VR_Init Failed", buf, NULL );
     return;
   }
 
@@ -628,41 +625,43 @@ void vtkOpenVRRenderWindow::Initialize (void)
   this->Size[0] = renderWidth;
   this->Size[1] = renderHeight;
 
-//  Uint32 unWindowFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN;
+  Uint32 unWindowFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN;
+  //Uint32 unWindowFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN;
 
-//  SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 4 );
-//  SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 1 );
-//  SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
+  SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 4 );
+  SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 1 );
+  //SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY );
+  SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
 
-//  SDL_GL_SetAttribute( SDL_GL_MULTISAMPLEBUFFERS, 0 );
-//  SDL_GL_SetAttribute( SDL_GL_MULTISAMPLESAMPLES, 0 );
+  SDL_GL_SetAttribute( SDL_GL_MULTISAMPLEBUFFERS, 0 );
+  SDL_GL_SetAttribute( SDL_GL_MULTISAMPLESAMPLES, 0 );
 
-//  this->WindowId = SDL_CreateWindow( this->WindowName,
-//    this->Position[0], this->Position[1],
-//    this->Size[0] / 2, this->Size[1] / 2,
-//    unWindowFlags );
-//  if (this->WindowId == NULL)
-//  {
-//    vtkErrorMacro("Window could not be created! SDL Error: " <<  SDL_GetError());
-//    return;
-//  }
+  this->WindowId = SDL_CreateWindow( this->WindowName,
+    this->Position[0], this->Position[1],
+    this->Size[0] / 2, this->Size[1] / 2,
+    unWindowFlags );
+  if (this->WindowId == NULL)
+  {
+    vtkErrorMacro("Window could not be created! SDL Error: " <<  SDL_GetError());
+    return;
+  }
 
-//  this->ContextId = SDL_GL_CreateContext(this->WindowId);
-//  if (this->ContextId == NULL)
-//  {
-//    vtkErrorMacro("OpenGL context could not be created! SDL Error: " <<  SDL_GetError() );
-//    return;
-//  }
+  this->ContextId = SDL_GL_CreateContext(this->WindowId);
+  if (this->ContextId == NULL)
+  {
+    vtkErrorMacro("OpenGL context could not be created! SDL Error: " <<  SDL_GetError() );
+    return;
+  }
 
   this->OpenGLInit();
   glDepthRange(0., 1.);
 
   // make sure vsync is off
-//  if ( SDL_GL_SetSwapInterval( 0 ) < 0 )
-//  {
-//    vtkErrorMacro("Warning: Unable to set VSync! SDL Error: " << SDL_GetError() );
-//    return;
-//  }
+  if ( SDL_GL_SetSwapInterval( 0 ) < 0 )
+  {
+    vtkErrorMacro("Warning: Unable to set VSync! SDL Error: " << SDL_GetError() );
+    return;
+  }
 
   m_strDriver = "No Driver";
   m_strDisplay = "No Display";
@@ -674,7 +673,7 @@ void vtkOpenVRRenderWindow::Initialize (void)
 
   std::string strWindowTitle = "VTK - " + m_strDriver + " " + m_strDisplay;
   this->SetWindowName(strWindowTitle.c_str());
-//  SDL_SetWindowTitle( this->WindowId, this->WindowName );
+  SDL_SetWindowTitle( this->WindowId, this->WindowName );
 
   this->CreateFrameBuffer(this->Size[0], this->Size[1], this->LeftEyeDesc);
   this->CreateFrameBuffer(this->Size[0], this->Size[1], this->RightEyeDesc);
@@ -705,33 +704,32 @@ void vtkOpenVRRenderWindow::Finalize (void)
   }
   this->VTKRenderModels.clear();
 
-//  if( this->ContextId )
-//  {
-//  }
+  if( this->ContextId )
+  {
+  }
 
-//  if( this->WindowId )
-//  {
-//    SDL_DestroyWindow( this->WindowId );
-//    this->WindowId = NULL;
-//  }
+  if( this->WindowId )
+  {
+    SDL_DestroyWindow( this->WindowId );
+    this->WindowId = NULL;
+  }
 
-//  SDL_Quit();
+  SDL_Quit();
 }
 
 void vtkOpenVRRenderWindow::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os,indent);
 
-//  os << indent << "ContextId: " << this->ContextId << "\n";
-//  os << indent << "Window Id: " << this->WindowId << "\n";
+  os << indent << "ContextId: " << this->ContextId << "\n";
+  os << indent << "Window Id: " << this->WindowId << "\n";
 }
 
 // Begin the rendering process.
 void vtkOpenVRRenderWindow::Start(void)
 {
   // if the renderer has not been initialized, do so now
-//  if (!this->ContextId)
-  if (!this->Initialized)
+  if (!this->ContextId)
   {
     this->Initialize();
   }

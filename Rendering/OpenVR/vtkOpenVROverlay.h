@@ -23,8 +23,8 @@
 
 #include "vtkRenderingOpenVRModule.h" // For export macro
 #include "vtkObject.h"
-//#define SDL_MAIN_HANDLED
-//#include <SDL.h> // for ivars
+#define SDL_MAIN_HANDLED
+#include <SDL.h> // for ivars
 #include <openvr.h> // for ivars
 #include <vector> // ivars
 #include "vtkNew.h" // for ivars
