@@ -42,8 +42,8 @@ PURPOSE.  See the above copyright notice for more information.
 #include "vtkRenderingOpenVRModule.h" // For export macro
 #include "vtkOpenGLRenderWindow.h"
 
-#define SDL_MAIN_HANDLED
-#include <SDL.h> // for ivars
+//#define SDL_MAIN_HANDLED
+//#include <SDL.h> // for ivars
 #include <openvr.h> // for ivars
 #include <vector> // ivars
 #include "vtkOpenGLHelper.h" // used for ivars
@@ -162,11 +162,11 @@ public:
   void SetWindowInfo(char *) {};
   void SetNextWindowInfo(char *) {};
   void SetParentInfo(char *) {};
-  virtual void *GetGenericDisplayId() {return (void *)this->ContextId;};
-  virtual void *GetGenericWindowId()  {return (void *)this->WindowId;};
+  virtual void *GetGenericDisplayId() {return 0; /*return (void *)this->ContextId;*/};
+  virtual void *GetGenericWindowId()  {return 0; /*return (void *)this->WindowId;*/};
   virtual void *GetGenericParentId()  {return (void *)NULL;};
-  virtual void *GetGenericContext()   {return (void *)this->ContextId;};
-  virtual void *GetGenericDrawable()  {return (void *)this->WindowId;};
+  virtual void *GetGenericContext()   {return 0; /*return (void *)this->ContextId;*/};
+  virtual void *GetGenericDrawable()  { return 0; /*return (void *)this->WindowId;*/};
   virtual void SetDisplayId(void *) {};
   void  SetWindowId(void *) {};
   void  SetParentId(void *) {};
@@ -276,8 +276,8 @@ protected:
   virtual void CreateAWindow() {};
   virtual void DestroyWindow() {};
 
-  SDL_Window *WindowId;
-  SDL_GLContext ContextId;
+//  SDL_Window *WindowId;
+//  SDL_GLContext ContextId;
   std::string m_strDriver;
   std::string m_strDisplay;
   vr::IVRSystem *HMD;
